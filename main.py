@@ -1,9 +1,13 @@
 from fastapi import FastAPI
 
-import cymbol_models
-import cymbol_fields
+import schemas
+import extras
+import security
 
 app = FastAPI()
+
+app.include_router(security.router)
+
 
 
 #####################################################################
@@ -23,7 +27,7 @@ async def get_offers(offset: int = 0, limit: int = 10):
     return {"offers": []}
 
 @app.get("/offers/tags")
-async def get_offer_by_tags(tags: set[str] = cymbol_fields.Query_Tags):
+async def get_offer_by_tags(tags: set[str] = extras.Query_Tags):
     return {"tags": tags}
 
 @app.get("/offers/{id}")
