@@ -1,8 +1,10 @@
 from fastapi import FastAPI
+from fastapi import Depends, HTTPException
 
-import schemas
-import extras
-import security
+from database import SessionLocal, engine
+import models, schemas, security, extras
+
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 

@@ -1,3 +1,4 @@
+from urllib.parse import quote_plus
 import os
 
 from dotenv import load_dotenv, find_dotenv
@@ -8,7 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 # loading environment variables from .env file
 load_dotenv(find_dotenv())
-SQLALCHEMY_DATABASE_URL = os.environ.get("SQLALCHEMY_DATABASE_URL")
+SQLALCHEMY_DATABASE_URL = os.environ.get("SQLALCHEMY_DATABASE_URL", "SQLALCHEMY_DATABASE_URL_ABSENT")
 
 
 
