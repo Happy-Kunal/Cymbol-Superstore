@@ -18,7 +18,7 @@ class Customer(Base):
     name = Column(String(255), nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     age = Column(Integer, nullable=True)
-    joined_on = Column(DATE, nullable = True)
+    joined_on = Column(DATE, server_default=text('now()'), nullable = True)
     hashed_password = Column(String, nullable=False)
     # TODO: profile picture
     # foreign key on cards

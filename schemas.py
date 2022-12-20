@@ -23,8 +23,7 @@ class Image(BaseModel):
 
 
 
-class Product(BaseModel):
-    id: int = Field(ge=0)
+class ProductBase(BaseModel):
     name: str = Field(min_length=6, max_length=255)
     price: float = Field(gt=0.0)
     desc: str = Field(default="", max_length=500)
@@ -32,6 +31,40 @@ class Product(BaseModel):
 
     seller_id: int
 
+    class Config:
+        orm_mode = True
+        schema_extra = {
+            "example": {
+                "name": "some very cool product",
+                "price": 100.01,
+                "desc": "freshly prepared from very cool ingredients",
+                "imgs": [
+                    {
+                        "id": 1001,
+                        "img": "https://example.com/foo.jpg",
+                        "desc": "foo",
+                    },
+                    {
+                        "id": 1002,
+                        "img": "https://example.com/bar.jpg",
+                        "desc": "bar",
+                    },
+                    {
+                        "id": 1003,
+                        "img": "https://example.com/baz.jpg",
+                        "desc": "baz",
+                    }   
+                ],
+
+                "seller_id": 1001,
+            }
+        }
+
+class ProductIn(ProductBase):
+    pass
+
+class ProductOut(ProductBase):
+    id: int = Field(ge=0)
     class Config:
         orm_mode = True
         schema_extra = {
@@ -61,6 +94,11 @@ class Product(BaseModel):
                 "seller_id": 1001,
             }
         }
+
+class ProductDB(ProductOut):
+    pass
+
+
 
 # TODO: implement in future
 # class Offer(BaseModel):
@@ -249,8 +287,7 @@ class AccountDB(AccountOut):
 
 
 
-class Order(BaseModel):
-    id: int = Field(ge=0)
+class OrderBase(BaseModel):
     price: float = Field(ge=0)
     is_cod: bool = True
     is_cancled: bool = False
@@ -261,6 +298,26 @@ class Order(BaseModel):
     seller_id: int = Field(ge=0)
     product_ids: list[int] = Field(ge=0)
     
+    class Config:
+        schema_extra = {
+            "example": {
+                "price": 100.00,
+                "is_cod": True,
+                "is_cancled": False,
+                "is_delivered": True,
+                "status": "payment received",
+                
+                "customer_id": 1002,
+                "seller_id": 1003,
+                "product_ids": [1001, 1002, 1003],
+            }
+        }
+
+class OrderIn(OrderBase):
+    pass
+
+class OrderOut(OrderIn):
+    id: int = Field(ge=0)
     class Config:
         orm_mode = True
         schema_extra = {
@@ -277,6 +334,10 @@ class Order(BaseModel):
                 "product_ids": [1001, 1002, 1003],
             }
         }
+
+class OrderDB(OrderOut):
+    pass
+
 
 
 
@@ -303,9 +364,9 @@ class SellerOut(SellerIn):
 
 class SellerDB(UserBase):
     hashed_password: str
-    products: list[Product] = []
+    products: list[ProductDB] = []
     accounts: list[AccountDB] = []
-    orders: list[Order] = []
+    orders: list[OrderDB] = []
     
     class Config:
         orm_mode = True
