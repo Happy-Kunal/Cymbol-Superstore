@@ -2,66 +2,10 @@ from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, CheckConstr
 from sqlalchemy import DECIMAL
 from sqlalchemy.orm import relationship
 from sqlalchemy import text
+from sqlalchemy.orm import Mapped
 
 from database import Base
 
-
-
-class Customer(Base):
-    __tablename__ = "customers"
-    __table_args__ = (
-        CheckConstraint('age >= 10'),
-        CheckConstraint('age <= 200'),
-    )
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(255), nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
-    age = Column(Integer, nullable=True)
-    joined_on = Column(DATE, server_default=text('now()'), nullable = True)
-    hashed_password = Column(String, nullable=False)
-    # TODO: profile picture
-    # foreign key on cards
-    cards = relationship('Card', back_populates='customers')
-    orders = relationship('Orders', back_populates='customers')
-
-
-class Card(Base):
-    __tablename__ = "cards"
-    __table_args__ = (
-        CheckConstraint('exp_month >= 1'),
-        CheckConstraint('exp_month <= 12'),
-        CheckConstraint('exp_year <= 2100'),
-        CheckConstraint('exp_month <= 2000'),
-    )
-
-    card_number = Column(String(16), primary_key=True, index=True)
-    card_holder_name = Column(String(255), nullable=False)
-    exp_month = Column(Integer, nullable=False)
-    exp_year = Column(Integer, nullable=False)
-    
-    # foreign key from customer
-    customer_id = Column(Integer, ForeignKey('customers.id', ondelete='CASCADE'), nullable=False)
-
-
-
-
-class Seller(Base):
-    __tablename__ = "sellers"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(255), nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
-    age = Column(Integer, nullable=True)
-    joined_on = Column(DATE, server_default=text('now()'), nullable = True)
-    hashed_password = Column(String, nullable=False)
-    
-    # foreign key on products
-    products = relationship('Product', back_populates='sellers')
-    # foreign key on account
-    accounts = relationship('Account', back_populates='sellers')
-    # foreign key on order
-    orders = relationship('Order', back_populates='sellers')
 
 
 class Product(Base):
@@ -74,12 +18,12 @@ class Product(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     price = Column(DECIMAL(10,2), nullable=False)
-    desc = Column(String(500), server_default="\"\"")
+    desc = Column(String(500), server_default="", nullable=False)
 
     # foreign key from seller
-    seller_id = Column(Integer, ForeignKey('sellers.id', ondelete='CASCADE'))
+    seller_id = Column(Integer, ForeignKey('sellers.id', ondelete='CASCADE'), nullable=False)
     #foreign key on images
-    imgs = relationship('images', back_populates='product')
+    imgs = relationship('Image')
 
 
 class Image(Base):
@@ -87,7 +31,7 @@ class Image(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     img = Column(String, unique=True, index=True, nullable=False)
-    desc = Column(String(255), server_default="\"\"")
+    desc = Column(String(255), server_default="\"\"", nullable=False)
 
     # foreign key from product.id
     product_id = Column(Integer, ForeignKey('products.id', ondelete='CASCADE'), nullable=False)
@@ -106,6 +50,25 @@ class Account(Base):
     
 
 
+class Card(Base):
+    __tablename__ = "cards"
+    __table_args__ = (
+        CheckConstraint('exp_month >= 1'),
+        CheckConstraint('exp_month <= 12'),
+        CheckConstraint('exp_year <= 2100'),
+        CheckConstraint('exp_month <= 2000'),
+    )
+
+    card_number = Column(String(16), primary_key=True, index=True)
+    card_holder_name = Column(String(255), nullable=False)
+    exp_month = Column(Integer, nullable=False)
+    exp_year = Column(Integer, nullable=False)
+    
+    # foreign key from customer
+    customer_id = Column(Integer, ForeignKey('customers.id', ondelete='CASCADE'), nullable=False)
+    # customer = relationship(back_populates="cards")
+
+
 
 class Order(Base):
     __tablename__ = "orders"
@@ -122,10 +85,48 @@ class Order(Base):
     status = Column(String(255), nullable=True)
 
     # foreign key from customer from customer, seller, products
-    seller_id = Column(Integer, ForeignKey('sellers.id', ondelete='CASCADE'))
-    customer_id = Column(Integer, ForeignKey('customers.id', ondelete='CASCADE'))
-    product_id = Column(Integer, ForeignKey('products.id', ondelete='CASCADE'))
+    seller_id = Column(Integer, ForeignKey('sellers.id', ondelete='CASCADE'), nullable=False)
+    customer_id = Column(Integer, ForeignKey('customers.id', ondelete='CASCADE'), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.id', ondelete='CASCADE'), nullable=False)
     
+
+
+class Customer(Base):
+    __tablename__ = "customers"
+    __table_args__ = (
+        CheckConstraint('age >= 10'),
+        CheckConstraint('age <= 200'),
+    )
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    age = Column(Integer, nullable=True)
+    joined_on = Column(DATE, server_default=text('now()'), nullable = True)
+    hashed_password = Column(String, nullable=False)
+    # TODO: profile picture
+    # foreign key on cards
+    cards = relationship('Card')
+    orders = relationship('Order')
+
+
+
+class Seller(Base):
+    __tablename__ = "sellers"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    age = Column(Integer, nullable=True)
+    joined_on = Column(DATE, server_default=text('now()'), nullable = True)
+    hashed_password = Column(String, nullable=False)
+    
+    # foreign key on products
+    products = relationship('Product')
+    # foreign key on account
+    accounts = relationship('Account')
+    # foreign key on order
+    orders = relationship('Order')
 
 
 

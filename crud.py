@@ -1,4 +1,4 @@
-from pydantic import HttpUrl
+from pydantic import HttpUrl, EmailStr
 from sqlalchemy.orm import Session
 
 import models, schemas
@@ -86,11 +86,18 @@ def creater_seller(db: Session, seller: schemas.SellerIn, password: str):
 
 ## Retrieve ##
 
+def get_bank_accounts(db: Session, seller_id: int):
+    return db.query(models.Account).filter(models.Account.seller_id == seller_id).all()
+
+
+def get_cards(db: Session, customer_id: int):
+    return db.query(models.Card).filter(models.Card.customer_id == customer_id).all()
+
 def get_customer(db: Session, customer_id: int):
     return db.query(models.Customer).filter(models.Customer.id == customer_id).first()
 
 
-def get_customer_by_email(db: Session, email: str):
+def get_customer_by_email(db: Session, email: EmailStr):
     return db.query(models.Customer).filter(models.Customer.email == email).first()
 
 
@@ -110,7 +117,7 @@ def get_seller(db: Session, seller_id: int):
     return db.query(models.Seller).filter(models.Seller.id == seller_id).first()
 
 
-def get_seller_by_email(db: Session, email: str):
+def get_seller_by_email(db: Session, email: EmailStr):
     return db.query(models.Seller).filter(models.Seller.email == email).first()
 
 

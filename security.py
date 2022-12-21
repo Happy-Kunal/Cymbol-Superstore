@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import os
 
 from dotenv import load_dotenv, find_dotenv
-from pydantic import BaseModel, Field
+from pydantic import EmailStr
 from fastapi import APIRouter, Query
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 import models, schemas
+from schemas import Token, TokenData
 
 ## Assuming email is username 
 
@@ -24,26 +25,13 @@ ALGORITHM = os.environ.get("ALGORITHM", "MD5")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
 
-
-class TokenData(BaseModel):
-    id: int
-    username: str = Field(alias="sub")
-    seller: bool = Field(default=False, alias="isSeller")
-
-
-router = APIRouter(
-    prefix="/auth",
-    tags=["auth"]
-)
+router = APIRouter()
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
 
@@ -74,13 +62,13 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 
 
 
-def authenticate_user(username: str, password: str, db: Session = Depends(get_db), seller: bool = False):
+def authenticate_user(email: EmailStr, password: str, db: Session, seller: bool = False):
     import crud
     
     if (seller):
-        user = crud.get_seller_by_email(db, email=username)
+        user = crud.get_seller_by_email(db=db, email=email)
     else:
-        user = crud.get_customer_by_email(db, email=username)
+        user = crud.get_customer_by_email(db=db, email=email)
     
     if user and verify_password(password, user.hashed_password):
         return user
@@ -88,7 +76,7 @@ def authenticate_user(username: str, password: str, db: Session = Depends(get_db
         raise credentials_exception
     
     
-def decode_access_token_if_valid_else_throw_401(token: str):
+def decode_access_token_if_valid_else_throw_401(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -107,8 +95,9 @@ def decode_access_token_if_valid_else_throw_401(token: str):
     
 
 @router.post("/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), seller: bool = Query(default=False)):
-    user = authenticate_user(form_data.username, form_data.password, seller=seller)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db), seller: bool = Query(default=False)):
+    user_email = EmailStr(form_data.username)
+    user = authenticate_user(user_email, form_data.password, db=db, seller=seller)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -117,7 +106,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username, "id": user.id, "seller": seller}, expires_delta=access_token_expires
+        data={"sub": user.email, "id": user.id, "seller": seller}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
