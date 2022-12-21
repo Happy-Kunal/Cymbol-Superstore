@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import os
 
 from dotenv import load_dotenv, find_dotenv
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi import APIRouter, Query
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models, schemas
 
+## Assuming email is username 
 
 # loading environment variables from .env file
 load_dotenv(find_dotenv())
@@ -26,6 +27,12 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class TokenData(BaseModel):
+    id: int
+    username: str = Field(alias="sub")
+    seller: bool = Field(default=False, alias="isSeller")
 
 
 router = APIRouter(
@@ -55,23 +62,25 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None, seller: bool = False):
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire, "seller": seller})
+    to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
 
 def authenticate_user(username: str, password: str, db: Session = Depends(get_db), seller: bool = False):
+    import crud
+    
     if (seller):
-        user = db.query(models.Seller).filter(models.Seller.email == username).first()
+        user = crud.get_seller_by_email(db, email=username)
     else:
-        user = db.query(models.Customer).filter(models.Customer.email == username).first()
+        user = crud.get_customer_by_email(db, email=username)
     
     if user and verify_password(password, user.hashed_password):
         return user
@@ -79,7 +88,23 @@ def authenticate_user(username: str, password: str, db: Session = Depends(get_db
         raise credentials_exception
     
     
+def decode_access_token_if_valid_else_throw_401(token: str):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload:
+            token_data = TokenData(**payload)
+            return token_data
+        else:
+            raise credentials_exception
 
+    except JWTError:
+        raise credentials_exception
+    
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), seller: bool = Query(default=False)):
@@ -92,7 +117,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires, seller=seller
+        data={"sub": user.username, "id": user.id, "seller": seller}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 

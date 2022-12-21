@@ -115,8 +115,80 @@ def get_seller_by_email(db: Session, email: str):
 
 
 ## Update ##
-# TODO: email updates in customer and seller
-# TODO: add update product, image, order
+
+def update_customer_email(db: Session, customer_id: int, new_email: str):
+    update_query = db.query(models.Customer).filter(models.Customer.id == customer_id)
+    if (update_query.first()):
+        update_query.update({"email": new_email}, synchronize_session=False)
+        db.commit()
+        return update_query.first()
+    else:
+        return -1
+
+
+def update_customer_password(db: Session, customer_id: int, new_password: str):
+    update_query = db.query(models.Customer).filter(models.Customer.id == customer_id)
+    if (update_query.first()):
+        update_query.update({"hashed_password": get_password_hash(new_password)}, synchronize_session=False)
+        db.commit()
+        return update_query.first()
+    else:
+        return -1
+
+
+def update_image(db: Session, image_id: int, **details):
+    update_query = db.query(models.Image).filter(models.Image.id == image_id)
+    if (update_query.first()):
+        try:
+            update_query.update(details, synchronize_session=False)
+            db.commit()
+            return update_query.first()
+        except:
+            print("Invalid Fields for updating models.Image")
+            return -2
+    else:
+        return -1
+
+
+def update_order(db: Session, order_id: int, new_details: schemas.OrderIn):
+    update_query = db.query(models.Order).filter(models.Order.id == order_id)
+    if (update_query.first()):
+        update_query.update(new_details.dict(), synchronize_session=False)
+        db.commit()
+        return update_query.first()
+    else:
+        return -1
+
+
+def update_product(db: Session, product_id: int, new_details: schemas.ProductIn):
+    update_query = db.query(models.Product).filter(models.Product.id == product_id)
+    if (update_query.first()):
+        update_query.update(new_details.dict(), synchronize_session=False)
+        db.commit()
+        return update_query.first()
+    else:
+        return -1
+
+
+def update_seller_email(db: Session, seller_id: int, new_email: str):
+    update_query = db.query(models.Seller).filter(models.Seller.id == seller_id)
+    if (update_query.first()):
+        update_query.update({"email": new_email}, synchronize_session=False)
+        db.commit()
+        return update_query.first()
+    else:
+        return -1
+
+
+def update_seller_password(db: Session, seller_id: int, new_password: str):
+    update_query = db.query(models.Seller).filter(models.Seller.id == seller_id)
+    if (update_query.first()):
+        update_query.update({"hashed_password": get_password_hash(new_password)}, synchronize_session=False)
+        db.commit()
+        return update_query.first()
+    else:
+        return -1
+
 
 
 ## Delete ##
@@ -125,7 +197,7 @@ def delete_bank_account(db: Session, acc_number: str):
     account = db.query(models.Account).filter(models.Account.acc_number == acc_number).first()
     if account:
         to_return = schemas.AccountDB(**account)
-        account.delete(synchronize_session=False)
+        db.delete(account)
         db.commit()
         return to_return
     else:
@@ -135,7 +207,7 @@ def delete_card(db: Session, card_number: str):
     card = db.query(models.Card).filter(models.Card.card_number == card_number).first()
     if card:
         to_return = schemas.CardDB(**card)
-        card.delete(synchronize_session=False)
+        db.delete(card)
         db.commit()
         return to_return
     else:
@@ -145,7 +217,7 @@ def delete_customer(db: Session, customer_id: int):
     customer = db.query(models.Customer).filter(models.Customer.id == customer_id).first()
     if customer:
         to_return = schemas.CustomerDB(**customer)
-        customer.delete(synchronize_session=False)
+        db.delete(customer)
         db.commit()
         return to_return
     else:
@@ -155,7 +227,7 @@ def delete_image(db: Session, image_id: int):
     image = db.query(models.Image).filter(models.Image.id == image_id).first()
     if image:
         to_return = schemas.Image(**image)
-        image.delete(synchronize_session=False)
+        db.delete(image)
         db.commit()
         return to_return
     else:
@@ -165,7 +237,7 @@ def delete_order(db: Session, order_id: int):
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if order:
         to_return = schemas.OrderDB(**order)
-        order.delete(synchronize_session=False)
+        db.delete(order)
         db.commit()
         return to_return
     else:
@@ -175,7 +247,7 @@ def delete_product(db: Session, product_id: int):
     product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if product:
         to_return = schemas.ProductDB(**product)
-        product.delete(synchronize_session=False)
+        db.delete(product)
         db.commit()
         return to_return
     else:
@@ -185,7 +257,7 @@ def delete_seller(db: Session, seller_id: int):
     seller = db.query(models.Seller).filter(models.Seller.id == seller_id).first()
     if seller:
         to_return = schemas.SellerDB(**seller)
-        seller.delete(synchronize_session=False)
+        db.delete(seller)
         db.commit()
         return to_return
     else:
