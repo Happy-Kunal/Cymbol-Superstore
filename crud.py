@@ -7,7 +7,7 @@ from security import get_password_hash
 ## Create ##
 
 def create_bank_account(db: Session, account: schemas.AccountIn, seller_id):
-    new_account = models.Product(
+    new_account = models.Account(
         **account.dict(), seller_id=seller_id
     )
 
@@ -18,7 +18,7 @@ def create_bank_account(db: Session, account: schemas.AccountIn, seller_id):
 
 
 def create_card(db: Session, card: schemas.CardIn, customer_id: int):
-    new_card = models.Product(
+    new_card = models.Card(
         **card.dict(), customer_id=customer_id
     )
 
@@ -40,10 +40,8 @@ def creater_customer(db: Session, customer: schemas.CustomerIn, password: str):
     return new_customer
 
 
-def create_image(db: Session, url: HttpUrl, product_id: int, desc: str = ""):
-    new_image = models.Product(
-        img=url, desc=desc, product_id=product_id
-    )
+def create_image(db: Session, new_image: schemas.ImageIn):
+    new_image = models.Image(**new_image.dict())
 
     db.add(new_image)
     db.commit()
@@ -52,7 +50,7 @@ def create_image(db: Session, url: HttpUrl, product_id: int, desc: str = ""):
 
 
 def create_order(db: Session, order: schemas.OrderIn):
-    new_order = models.Product(**order.dict())
+    new_order = models.Order(**order.dict())
 
     db.add(new_order)
     db.commit()
@@ -72,7 +70,7 @@ def create_product(db: Session, product: schemas.ProductIn, seller_id: int):
 
 
 def creater_seller(db: Session, seller: schemas.SellerIn, password: str):
-    new_seller = models.Customer(
+    new_seller = models.Seller(
         **seller.dict(),
         hashed_password=get_password_hash(password=password)
     )
@@ -233,7 +231,7 @@ def delete_customer(db: Session, customer_id: int):
 def delete_image(db: Session, image_id: int):
     image = db.query(models.Image).filter(models.Image.id == image_id).first()
     if image:
-        to_return = schemas.Image(**image)
+        to_return = schemas.ImageOut(**image)
         db.delete(image)
         db.commit()
         return to_return

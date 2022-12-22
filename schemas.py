@@ -6,10 +6,26 @@ from pydantic import EmailStr, HttpUrl
 
 from pydantic import ValidationError
 
-class Image(BaseModel):
-    id: int
+class ImageBase(BaseModel):
     img: HttpUrl
     desc: str = Field(default="", max_length=255)
+    product_id: int = Field(ge=0)
+
+    class Config:
+        orm_mode = True
+        schema_extra = {
+            "example": {
+                "img": "https://example.com/foo.jpg",
+                "desc": "cool image",
+                "product_id": 1001
+            }
+        }
+
+class ImageIn(ImageBase):
+    pass
+
+class ImageOut(ImageIn):
+    id: int = Field(ge=0)
 
     class Config:
         orm_mode = True
@@ -18,6 +34,7 @@ class Image(BaseModel):
                 "id": 1001,
                 "img": "https://example.com/foo.jpg",
                 "desc": "cool image",
+                "product_id": 1001
             }
         }
 
@@ -27,9 +44,6 @@ class ProductBase(BaseModel):
     name: str = Field(min_length=6, max_length=255)
     price: float = Field(gt=0.0)
     desc: str = Field(default="", max_length=500)
-    imgs: list[Image] = Field(default=[], max_items=10)
-
-    seller_id: int
 
     class Config:
         orm_mode = True
@@ -38,25 +52,7 @@ class ProductBase(BaseModel):
                 "name": "some very cool product",
                 "price": 100.01,
                 "desc": "freshly prepared from very cool ingredients",
-                "imgs": [
-                    {
-                        "id": 1001,
-                        "img": "https://example.com/foo.jpg",
-                        "desc": "foo",
-                    },
-                    {
-                        "id": 1002,
-                        "img": "https://example.com/bar.jpg",
-                        "desc": "bar",
-                    },
-                    {
-                        "id": 1003,
-                        "img": "https://example.com/baz.jpg",
-                        "desc": "baz",
-                    }   
-                ],
-
-                "seller_id": 1001,
+                "product_id": 1001
             }
         }
 
@@ -65,6 +61,8 @@ class ProductIn(ProductBase):
 
 class ProductOut(ProductBase):
     id: int = Field(ge=0)
+    imgs: list[ImageOut] = Field(default=[], max_items=10)
+    seller_id: int
     class Config:
         orm_mode = True
         schema_extra = {
@@ -242,7 +240,7 @@ class CustomerDB(CustomeOut):
 
 
 class AccountBase(BaseModel):
-    acc_num: str = Field(min_length=9, max_length=17)
+    acc_number: str = Field(min_length=9, max_length=17)
     acc_holder: str = Field(max_length=255)
     bank_name: str = Field(max_length=255)
     ifsc_code: str | None = Field(default=None, min_length=11, max_length=11)
@@ -250,7 +248,7 @@ class AccountBase(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "acc_num": "1234" "5678" "9101" "1121",
+                "acc_number": "1234" "5678" "9101" "1121",
                 "acc_holder": "Foo Bar",
                 "bank_name": "Baz Bank",
                 "ifsc_code": "bazb0123456"
@@ -268,7 +266,7 @@ class AccountOut(AccountBase):
         orm_mode = True
         schema_extra = {
             "example": {
-                "acc_num": "1234" "5678" "9101" "1121",
+                "acc_number": "1234" "5678" "9101" "1121",
                 "acc_holder": "Foo Bar",
                 "bank_name": "Baz Bank",
                 "ifsc_code": "bazb0123456",
@@ -282,7 +280,7 @@ class AccountDB(AccountOut):
         orm_mode = True
         schema_extra = {
             "example": {
-                "acc_num": "1234" "5678" "9101" "1121",
+                "acc_number": "1234" "5678" "9101" "1121",
                 "acc_holder": "Foo Bar",
                 "bank_name": "Baz Bank",
                 "ifsc_code": "bazb0123456",
@@ -314,7 +312,7 @@ class OrderBase(BaseModel):
                 
                 "customer_id": 1002,
                 "seller_id": 1003,
-                "product_ids": 1001,
+                "product_id": 1001,
             }
         }
 
@@ -383,7 +381,7 @@ class SellerDB(UserBase):
                 "joined_on": "2003-04-12",
                 "accounts": [
                     {
-                        "acc_num": "1234" "5678" "9101" "1121",
+                        "acc_number": "1234" "5678" "9101" "1121",
                         "acc_holder": "Foo Bar",
                         "bank_name": "Baz Bank",
                         "ifsc_code": "bazb0123456"
@@ -407,76 +405,6 @@ class TokenData(BaseModel):
     username: str = Field(alias="sub")
     isSeller: bool = Field(default=False, alias="seller")
 
-
-
-class MultipleProducts(BaseModel):
-    products: list[ProductOut] = []
-    class Config:
-        orm_mode = True
-        schema_extra = {
-            "example": {
-                "products": [
-                    {
-                        "id": 1001,
-                        "name": "some very cool product",
-                        "price": 100.01,
-                        "desc": "freshly prepared from very cool ingredients",
-                        "imgs": [
-                            {
-                            "id": 1001,
-                            "img": "https://example.com/foo.jpg",
-                            "desc": "foo"
-                            },
-                            {
-                            "id": 1002,
-                            "img": "https://example.com/bar.jpg",
-                            "desc": "bar"
-                            },
-                            {
-                            "id": 1003,
-                            "img": "https://example.com/baz.jpg",
-                            "desc": "baz"
-                            }
-                        ],
-                        "seller_id": 1001
-                    }
-                ]
-            }
-        }
-
-class MultipleCards(BaseModel):
-    cards: list[CardOut] = []
-    class Config:
-        orm_mode = True
-        schema_extra = {
-            "example": {
-                "additionalProp1": [
-                    {
-                    "card_number": "1234567891011121",
-                    "card_holder_name": "Foo Bar",
-                    "customer_id": 1001
-                    }
-                ],
-            }
-        }
-
-class MultipleAccounts(BaseModel):
-    accounts: list[AccountOut] = []
-    class Config:
-        orm_mode = True
-        schema_extra = {
-            "example": {
-                "additionalProp1": [
-                    {
-                    "acc_num": "1234" "5678" "9101" "1121",
-                    "acc_holder": "Foo Bar",
-                    "bank_name": "Baz Bank",
-                    "ifsc_code": "bazb0123456",
-                    "seller_id": 1001,
-                    }
-                ],
-            }
-        }
 
 
 if __name__ == "__main__":

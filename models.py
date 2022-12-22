@@ -40,7 +40,7 @@ class Image(Base):
 class Account(Base):
     __tablename__ = "bank_accounts"
 
-    acc_number = Column(String, nullable=False, primary_key=True, index=True)
+    acc_number = Column(String(17), nullable=False, primary_key=True, index=True)
     acc_holder = Column(String(255), nullable=False)
     bank_name = Column(String(255), nullable=False)
     ifsc_code = Column(String(11), nullable=True)
