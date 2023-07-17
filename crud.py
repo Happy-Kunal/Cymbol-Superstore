@@ -1,4 +1,5 @@
 from pydantic import HttpUrl, EmailStr
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 import models, schemas
@@ -108,7 +109,14 @@ def get_order(db: Session, order_id: int):
 
 
 def get_product(db: Session, product_id: int):
-    return db.query(models.Product).filter(models.Product.id == product_id).first()
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    if (product):
+        return product
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No Such Product With Product id = {product_id} exists"
+        )
 
 
 def get_seller(db: Session, seller_id: int):
@@ -127,8 +135,20 @@ def update_customer_email(db: Session, customer_id: int, new_email: str):
         update_query.update({"email": new_email}, synchronize_session=False)
         db.commit()
         return update_query.first()
+
+
+def update_customer_by_id(db: Session, customer_id: int, new_details: schemas.CustomerIn):
+    update_query = db.query(models.Customer).filter(models.Customer.id == customer_id)
+    if (update_query.first()):
+        update_query.update(new_details.dict(), synchronize_session=False)
+        db.commit()
+        return update_query.first()
     else:
-        return -1
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Customer NOT FOUND in Database"
+        )
+
 
 
 def update_customer_password(db: Session, customer_id: int, new_password: str):
@@ -137,8 +157,7 @@ def update_customer_password(db: Session, customer_id: int, new_password: str):
         update_query.update({"hashed_password": get_password_hash(new_password)}, synchronize_session=False)
         db.commit()
         return update_query.first()
-    else:
-        return -1
+
 
 
 def update_image(db: Session, image_id: int, **details):
@@ -149,10 +168,11 @@ def update_image(db: Session, image_id: int, **details):
             db.commit()
             return update_query.first()
         except:
-            print("Invalid Fields for updating models.Image")
-            return -2
-    else:
-        return -1
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid Fields for updating models.Image"
+            )
+            
 
 
 def update_order(db: Session, order_id: int, new_details: schemas.OrderIn):
@@ -172,7 +192,10 @@ def update_product(db: Session, product_id: int, new_details: schemas.ProductIn)
         db.commit()
         return update_query.first()
     else:
-        return -1
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No Product with product_id = {product_id} in database"
+        )
 
 
 def update_seller_email(db: Session, seller_id: int, new_email: str):
@@ -183,6 +206,19 @@ def update_seller_email(db: Session, seller_id: int, new_email: str):
         return update_query.first()
     else:
         return -1
+
+
+def update_seller_by_id(db: Session, seller_id: int, new_details: schemas.SellerIn):
+    update_query = db.query(models.Seller).filter(models.Seller.id == seller_id)
+    if (update_query.first()):
+        update_query.update(new_details.dict(), synchronize_session=False)
+        db.commit()
+        return update_query.first()
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Seller NOT FOUND in Database"
+        )
 
 
 def update_seller_password(db: Session, seller_id: int, new_password: str):

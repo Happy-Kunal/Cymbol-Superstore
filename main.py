@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi import Depends, HTTPException, status
 from fastapi import Query, Form, Body
 from sqlalchemy.orm import Session
+from fastapi.staticfiles import StaticFiles
 
 from database import engine, get_db
 import crud
@@ -19,8 +20,6 @@ app.include_router(
     prefix="/auth",
     tags=["auth"],
 )
-
-
 
 #####################################################################
 #                           get methods                             #
@@ -434,6 +433,89 @@ async def create_product(
         )
 
 
+# @app.post("/products/{id}/addImage", response_model=schemas.ImageOut)
+# async def add_image_to_product(
+#     id: int,
+#     new_image: schemas.ImageIn = Body(),
+#     db: Session = Depends(get_db),
+#     user: schemas.TokenData = Depends(security.decode_access_token_if_valid_else_throw_401)
+# ):
+#     product = crud.get_product(db, id)
+#     if (user.isSeller):
+#         if (product):
+#             if (product.seller_id == user.id):
+#                 return crud.create_image(db, new_image)
+#             else:
+#                 raise HTTPException(
+#                     status_code=status.HTTP_406_NOT_ACCEPTABLE,
+#                     detail=f"Product with id: {id}, isn't owned by Current Seller"
+#                 )
+#         else:
+#             raise HTTPException(
+#                 status_code=status.HTTP_404_NOT_FOUND,
+#                 detail=f"Product with id: {id}, Doesn't Exists"
+#             )
+#     else:
+#         raise HTTPException(
+#             status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+#             detail="Only Sellers Can Edit/Add Product Details"
+#         )
+
+
+                
+
+
+#####################################################################
+#                           put methods                             #
+#####################################################################
+
+# TODO after reading about OAuth and JWT tokens
+
+@app.put("/customers/{id}/update", response_model=schemas.CustomeOut)
+async def update_customer_by_id(
+    id: int,
+    db: Session = Depends(get_db),
+    new_details: schemas.CustomerIn = Body(),
+    #password: str = Form() #TODO
+):
+    return crud.update_customer_by_id(
+                                    db=db,
+                                    customer_id=id,
+                                    new_details=new_details
+                                )
+
+
+
+
+@app.put("/sellers/{id}/update", response_model=schemas.SellerOut)
+async def update_seller_by_id(
+    id: int,
+    db: Session = Depends(get_db),
+    new_details: schemas.SellerIn = Body(),
+    # password: str = Form() # TODO
+):
+    return crud.update_seller_by_id(db=db,
+                                    seller_id=id,
+                                    new_details=new_details
+                                )
+
+
+@app.put("/products/{id}/update", response_model=schemas.ProductOut)
+async def update_product(
+    id: int,
+    db: Session = Depends(get_db),
+    new_details: schemas.ProductIn = Body(),
+    user: schemas.TokenData = Depends(security.decode_access_token_if_valid_else_throw_401)
+):
+    if (user.isSeller and crud.get_product(db, id).seller_id == user.id):
+        return crud.update_product(db, id, new_details)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+            detail="Current User isn't Allowed To Perform This Operation"
+        )
+
+
 @app.post("/products/{id}/addImage", response_model=schemas.ImageOut)
 async def add_image_to_product(
     id: int,
@@ -466,14 +548,18 @@ async def add_image_to_product(
                 
 
 
-#####################################################################
-#                           put methods                             #
-#####################################################################
-
-# TODO after reading about OAuth and JWT tokens
 
 #####################################################################
 #                           delete methods                          #
 #####################################################################
 
 # TODO after reading about OAuth and JWT tokens
+
+
+#####################################################################
+#                           static files                            #
+#####################################################################
+
+
+# https://stackoverflow.com/questions/65916537/a-minimal-fastapi-example-loading-index-html
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
